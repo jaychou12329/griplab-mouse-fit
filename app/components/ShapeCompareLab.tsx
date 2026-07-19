@@ -29,6 +29,7 @@ type ParsedSvg = { viewBox: string; paths: string[] };
 
 const COLORS = ["#d7ff45", "#55c2ff", "#ff4fd8", "#ff8f3d"];
 const DEFAULT_IDS = [2554, 1618, 2720];
+const OUTLINE_SCALE = 2.25;
 
 const zh: Record<string, string> = {
   symmetrical: "对称", ergonomic: "人体工学", hybrid: "混合型",
@@ -58,7 +59,7 @@ function parseSvg(source: string | null | undefined): ParsedSvg | null {
 function RealOutline({ source, color, className, labelText }: { source: string | null | undefined; color: string; className: string; labelText: string }) {
   const parsed = useMemo(() => parseSvg(source), [source]);
   if (!parsed) return null;
-  return <svg className={className} viewBox={parsed.viewBox} preserveAspectRatio="none" role="img" aria-label={labelText} style={{ color }}>
+  return <svg className={className} viewBox={parsed.viewBox} preserveAspectRatio="xMidYMid meet" role="img" aria-label={labelText} style={{ color }}>
     {parsed.paths.map((path, index) => <path key={index} d={path} />)}
   </svg>;
 }
@@ -78,13 +79,11 @@ function OutlineCanvas({ title, note, view, chosen, shapes, alignment, showGrid 
       <div className="real-axis horizontal" />
       <div className="real-axis vertical" />
       {chosen.map((mouse, index) => {
-        const width = view === "top" ? mouse.width : mouse.length;
-        const height = view === "top" ? mouse.length : mouse.height;
-        const maxWidth = view === "top" ? 75 : 135;
-        const maxHeight = view === "top" ? 135 : 50;
+        const physicalWidth = view === "top" ? (mouse.width || 64) : (mouse.length || 125);
+        const physicalHeight = view === "top" ? (mouse.length || 125) : (mouse.height || 40);
         const style = {
-          "--outline-width": `${Math.min(96, ((width || maxWidth * .82) / maxWidth) * 90)}%`,
-          "--outline-height": `${Math.min(90, ((height || maxHeight * .82) / maxHeight) * (view === "top" ? 88 : 66))}%`,
+          width: `${physicalWidth * OUTLINE_SCALE}px`,
+          aspectRatio: `${physicalWidth} / ${physicalHeight}`,
         } as React.CSSProperties;
         return <div className="real-outline-layer" style={style} key={mouse.id}>
           <RealOutline
@@ -106,7 +105,7 @@ export default function ShapeCompareLab() {
   const [selected, setSelected] = useState<number[]>([]);
   const [query, setQuery] = useState("");
   const [alignment, setAlignment] = useState<Alignment>("center");
-  const [showGrid, setShowGrid] = useState(true);
+  const [showGrid, setShowGrid] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -138,7 +137,7 @@ export default function ShapeCompareLab() {
   return <section className="shape-home-section" id="shape-compare">
     <div className="shape-home-intro">
       <div><span className="section-kicker">SHAPE LAB / 真实模具叠加</span><h2>同一个网站，<br /><em>直接看真实轮廓。</em></h2></div>
-      <p>不是根据长宽高生成的示意图。这里直接使用 EloShapes 公开数据中的真实 2D 俯视与侧视 SVG，并按鼠标实际毫米尺寸统一缩放。</p>
+      <p>不是根据长宽高生成的示意图。这里直接使用 EloShapes 公开数据中的真实 2D 俯视与侧视 SVG，俯视和侧视共用同一毫米比例，不再单独拉伸高度。</p>
     </div>
 
     <div className="shape-workbench embedded">
@@ -158,7 +157,7 @@ export default function ShapeCompareLab() {
           <div className="selection-title"><span>已选模具</span><button onClick={() => setSelected([])}>全部清空</button></div>
           {chosen.map((mouse, index) => <article key={mouse.id} style={{ "--mouse-color": COLORS[index] } as React.CSSProperties}><i /><div><small>{mouse.brand}</small><b>{mouse.name}</b><span>{mouse.length ?? "—"} × {mouse.width ?? "—"} × {mouse.height ?? "—"} mm　{mouse.weight ?? "—"}g</span></div><button aria-label={`移除 ${mouse.brand} ${mouse.name}`} onClick={() => setSelected((current) => current.filter((id) => id !== mouse.id))}>×</button></article>)}
           {!chosen.length && <div className="selection-empty">搜索并添加鼠标<br />开始模具叠加</div>}
-          <div className="outline-note"><b>真实轮廓 · 本站内使用</b><p>{shapeData ? `${shapeData.available.toLocaleString()} / ${shapeData.total.toLocaleString()} 款已包含俯视和侧视轮廓。` : "正在载入完整轮廓库…"} 数据已随本站部署，不需要跳转到其他网站。</p></div>
+          <div className="outline-note"><b>真实轮廓 · 统一毫米比例</b><p>{shapeData ? `${shapeData.available.toLocaleString()} / ${shapeData.total.toLocaleString()} 款已包含俯视和侧视轮廓。` : "正在载入完整轮廓库…"} 数据已随本站部署，不需要跳转到其他网站。</p></div>
         </aside>
 
         <div className="shape-canvases">

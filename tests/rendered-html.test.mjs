@@ -24,6 +24,7 @@ test("renders the mouse database", async () => {
   assert.match(html, /搜索全部品牌/);
   assert.match(html, /模具对比/);
   assert.match(html, /真实模具叠加/);
+  assert.match(html, /共用同一毫米比例/);
   assert.match(html, /作者：我的手机没电了 p1341026/);
 });
 
