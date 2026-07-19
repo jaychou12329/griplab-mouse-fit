@@ -77,6 +77,10 @@ const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH || "";
 const STATIC_IMAGES = process.env.NEXT_PUBLIC_GITHUB_PAGES === "true";
 const assetUrl = (path: string) => `${BASE_PATH}${path}`;
 const normalizeSearch = (value: string) => value.normalize("NFKC").toLowerCase().replace(/[\s\-_.·/（）()]+/g, "");
+const matchesSearch = (haystack: string, query: string) => {
+  const target = normalizeSearch(haystack);
+  return query.trim().split(/\s+/).map(normalizeSearch).filter(Boolean).every((token) => target.includes(token));
+};
 
 const zh: Record<string, string> = {
   small: "小型", medium: "中型", large: "大型", fingertip: "指握型",
@@ -204,9 +208,8 @@ export default function Home() {
   }, [brandCounts, brandQuery, selectedBrands]);
 
   const results = useMemo(() => {
-    const normalized = normalizeSearch(query.trim());
     const filtered = mice.filter((mouse) => {
-      if (normalized && !normalizeSearch(`${mouse.brand} ${mouse.name} ${mouse.sensor || ""}`).includes(normalized)) return false;
+      if (query.trim() && !matchesSearch(`${mouse.brand} ${mouse.name} ${mouse.sensor || ""}`, query)) return false;
       if (selectedBrands.length && !selectedBrands.includes(mouse.brand)) return false;
       if (shape !== "all" && mouse.shape !== shape) return false;
       if (wireless !== "all" && mouse.wireless !== (wireless === "wireless")) return false;
