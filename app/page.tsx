@@ -71,7 +71,7 @@ const budgetTiers = [
   { key: "700", label: "700–999", range: "旗舰级", min: 700, max: 999 },
   { key: "1000", label: "1000 元以上", range: "顶级限定", min: 1000, max: 5000 },
 ] as const;
-const PAGE_SIZE = 24;
+const PAGE_SIZE = 60;
 const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH || "";
 const STATIC_IMAGES = process.env.NEXT_PUBLIC_GITHUB_PAGES === "true";
 const assetUrl = (path: string) => `${BASE_PATH}${path}`;
@@ -226,8 +226,14 @@ export default function Home() {
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => setPage(1), [budget, grip, hand, includeUnknownPrice, query, selectedBrands, shape, sort, weightMax, wireless]);
 
+  const hasActiveFilters = Boolean(
+    query.trim() || selectedBrands.length || shape !== "all" || wireless !== "all" ||
+    weightMax < 180 || budget[0] !== 0 || budget[1] !== 5000 || !includeUnknownPrice
+  );
   const totalPages = Math.max(1, Math.ceil(results.length / PAGE_SIZE));
-  const visible = results.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const visibleLimit = hasActiveFilters ? results.length : page * PAGE_SIZE;
+  const visible = results.slice(0, visibleLimit);
+  const remaining = Math.max(0, results.length - visible.length);
   const compared = compare.map((id) => mice.find((mouse) => mouse.id === id)).filter(Boolean) as Mouse[];
   const heroMouse = results[0] || mice.find((mouse) => mouse.handle === "razer-viper-v4-pro") || mice[0];
   const featureMouse = mice.find((mouse) => mouse.handle === "finalmouse-starlight-x") || heroMouse;
@@ -287,7 +293,7 @@ export default function Home() {
       <ShapeCompareLab />
 
       <section className="catalog" id="catalog">
-        <div className="catalog-head"><div><span className="section-kicker">FULL DATABASE</span><h2>全部鼠标库</h2><p>共 {mice.length.toLocaleString()} 款 · 当前显示 {results.length.toLocaleString()} 款</p></div><div className="catalog-actions"><button className="mobile-filter-button" onClick={() => setMobileFilters(true)}>筛选器</button><select aria-label="排序" value={sort} onChange={(e) => setSort(e.target.value as SortKey)}><option value="fit">适配度优先</option><option value="newest">新品优先</option><option value="weight">重量从轻到重</option><option value="polling">回报率从高到低</option><option value="name">品牌名称</option></select><button className="reset" onClick={resetFilters}>重置筛选</button></div></div>
+        <div className="catalog-head"><div><span className="section-kicker">FULL DATABASE</span><h2>全部鼠标库</h2><p>全库 {mice.length.toLocaleString()} 款 · 符合条件 {results.length.toLocaleString()} 款 · 已显示 {visible.length.toLocaleString()} 款</p></div><div className="catalog-actions"><button className="mobile-filter-button" onClick={() => setMobileFilters(true)}>筛选器</button><select aria-label="排序" value={sort} onChange={(e) => setSort(e.target.value as SortKey)}><option value="fit">适配度优先</option><option value="newest">新品优先</option><option value="weight">重量从轻到重</option><option value="polling">回报率从高到低</option><option value="name">品牌名称</option></select><button className="reset" onClick={resetFilters}>重置筛选</button></div></div>
         <div className="price-tier-panel">
           <div className="price-tier-heading"><span>PRICE RANGE</span><div><h3>按价位选鼠标</h3><p>选中价位后，只显示已有参考价的型号；也可以在左侧输入任意预算。</p></div></div>
           <div className="price-tier-list">{budgetTiers.map((tier) => <button key={tier.key} className={activeBudgetKey === tier.key ? "active" : ""} aria-pressed={activeBudgetKey === tier.key} onClick={() => selectBudgetTier(tier)}><span>{tier.label}</span><b>{tier.range}</b><small>{loading ? "…" : `${priceTierCounts[tier.key] || 0} 款`}</small></button>)}</div>
@@ -311,7 +317,7 @@ export default function Home() {
                 <div className="product-info"><div className="product-brand">{mouse.brand}</div><h3>{mouse.name}</h3><div className="fit-line"><span style={{ width: `${fitScore(mouse, hand, grip)}%` }} /><b>{fitScore(mouse, hand, grip)}% 适配</b></div><div className="grip-tags">{recommendations.map((item) => <span key={item.key}>{item.label}</span>)}</div><div className="product-specs"><span><small>重量</small><b>{num(mouse.weight, "g")}</b></span><span><small>尺寸</small><b>{mouse.length ? `${mouse.length}mm` : "—"}</b></span><span><small>传感器</small><b title={mouse.sensor || ""}>{mouse.sensor || "—"}</b></span><span><small>回报率</small><b>{num(mouse.polling, "Hz")}</b></span></div><div className="product-bottom"><div>{mouse.price ? <><strong>¥{mouse.price}</strong><small>参考价</small></> : <span>价格待补充</span>}</div><button onClick={() => setDetail(mouse)}>完整参数 <i>→</i></button></div></div>
               </article>;
             })}</div> : <div className="empty"><b>没有符合条件的鼠标</b><p>试试放宽重量、品牌或价格条件。</p><button onClick={resetFilters}>清空筛选</button></div>}
-            {totalPages > 1 && <div className="pagination"><button disabled={page === 1} onClick={() => setPage(page - 1)}>← 上一页</button><span>第 <b>{page}</b> / {totalPages} 页</span><button disabled={page === totalPages} onClick={() => setPage(page + 1)}>下一页 →</button></div>}
+            {remaining > 0 && <div className="pagination"><span>已显示 <b>{visible.length.toLocaleString()}</b> / {results.length.toLocaleString()} 款</span><button onClick={() => setPage((current) => current + 1)}>继续显示 {Math.min(PAGE_SIZE, remaining)} 款</button><button className="show-all" onClick={() => setPage(totalPages)}>一次显示全部符合条件的鼠标</button></div>}
           </div>
         </div>
       </section>
