@@ -33,6 +33,7 @@ const OUTLINE_SCALE = 2.25;
 const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH || "";
 const STATIC_IMAGES = process.env.NEXT_PUBLIC_GITHUB_PAGES === "true";
 const assetUrl = (path: string) => `${BASE_PATH}${path}`;
+const normalizeSearch = (value: string) => value.normalize("NFKC").toLowerCase().replace(/[\s\-_.·/（）()]+/g, "");
 
 const zh: Record<string, string> = {
   symmetrical: "对称", ergonomic: "人体工学", hybrid: "混合型",
@@ -124,10 +125,10 @@ export default function ShapeCompareLab() {
 
   const chosen = selected.map((id) => mice.find((mouse) => mouse.id === id)).filter(Boolean) as Mouse[];
   const results = useMemo(() => {
-    const needle = query.trim().toLowerCase();
+    const needle = normalizeSearch(query.trim());
     if (!needle) return [];
     return mice
-      .filter((mouse) => !selected.includes(mouse.id) && `${mouse.brand} ${mouse.name}`.toLowerCase().includes(needle))
+      .filter((mouse) => !selected.includes(mouse.id) && normalizeSearch(`${mouse.brand} ${mouse.name}`).includes(needle))
       .sort((a, b) => Number(Boolean(shapeData?.shapes[b.handle]?.top && shapeData?.shapes[b.handle]?.side)) - Number(Boolean(shapeData?.shapes[a.handle]?.top && shapeData?.shapes[a.handle]?.side)))
       .slice(0, 14);
   }, [mice, query, selected, shapeData]);

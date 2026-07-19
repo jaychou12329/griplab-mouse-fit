@@ -32,6 +32,13 @@ test("includes the current flagship comparison defaults", () => {
   assert.ok(handles.has("razer-viper-v4-pro"));
   assert.ok(handles.has("logitech-g-pro-x2-superstrike"));
   assert.ok(handles.has("finalmouse-starlight-x"));
+
+  const viperV4 = mice.find((mouse) => mouse.handle === "razer-viper-v4-pro");
+  const gpw5 = mice.find((mouse) => mouse.handle === "logitech-g-pro-x2-superstrike");
+  assert.equal(viperV4.releaseDate, "2026-03-24");
+  assert.equal(viperV4.polling, 8000);
+  assert.match(gpw5.name, /GPW5 雪豹/);
+  assert.equal(gpw5.releaseDate, "2026-02-10");
 });
 
 test("places every known reference price in a visible tier", () => {

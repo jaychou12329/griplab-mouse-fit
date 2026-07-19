@@ -75,6 +75,7 @@ const PAGE_SIZE = 24;
 const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH || "";
 const STATIC_IMAGES = process.env.NEXT_PUBLIC_GITHUB_PAGES === "true";
 const assetUrl = (path: string) => `${BASE_PATH}${path}`;
+const normalizeSearch = (value: string) => value.normalize("NFKC").toLowerCase().replace(/[\s\-_.·/（）()]+/g, "");
 
 const zh: Record<string, string> = {
   small: "小型", medium: "中型", large: "大型", fingertip: "指握型",
@@ -190,9 +191,9 @@ export default function Home() {
   const activeBudgetKey = budgetTiers.find((tier) => tier.min === budget[0] && tier.max === budget[1])?.key || "custom";
 
   const visibleBrands = useMemo(() => {
-    const needle = brandQuery.trim().toLowerCase();
+    const needle = normalizeSearch(brandQuery.trim());
     return [...brandCounts.keys()]
-      .filter((brand) => !needle || brand.toLowerCase().includes(needle))
+      .filter((brand) => !needle || normalizeSearch(brand).includes(needle))
       .sort((a, b) => {
         const selectedDelta = Number(selectedBrands.includes(b)) - Number(selectedBrands.includes(a));
         return selectedDelta || (brandCounts.get(b) || 0) - (brandCounts.get(a) || 0) || a.localeCompare(b);
@@ -201,9 +202,9 @@ export default function Home() {
   }, [brandCounts, brandQuery, selectedBrands]);
 
   const results = useMemo(() => {
-    const normalized = query.trim().toLowerCase();
+    const normalized = normalizeSearch(query.trim());
     const filtered = mice.filter((mouse) => {
-      if (normalized && !`${mouse.brand} ${mouse.name} ${mouse.sensor || ""}`.toLowerCase().includes(normalized)) return false;
+      if (normalized && !normalizeSearch(`${mouse.brand} ${mouse.name} ${mouse.sensor || ""}`).includes(normalized)) return false;
       if (selectedBrands.length && !selectedBrands.includes(mouse.brand)) return false;
       if (shape !== "all" && mouse.shape !== shape) return false;
       if (wireless !== "all" && mouse.wireless !== (wireless === "wireless")) return false;
