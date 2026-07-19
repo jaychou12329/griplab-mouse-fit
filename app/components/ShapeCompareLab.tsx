@@ -10,6 +10,7 @@ type Mouse = {
   brand: string;
   name: string;
   image: string | null;
+  localImage?: string | null;
   length: number | null;
   width: number | null;
   height: number | null;
@@ -47,6 +48,7 @@ function label(value: string | null) {
 }
 
 function imageUrl(mouse: Mouse) {
+  if (mouse.localImage) return assetUrl(`/${mouse.localImage.replace(/^\/+/, "")}`);
   if (!mouse.image) return null;
   if (STATIC_IMAGES) return assetUrl(`/mouse-images/${encodeURIComponent(mouse.handle)}.webp`);
   return `/api/mouse-image?file=${encodeURIComponent(mouse.image)}&size=240`;
@@ -151,7 +153,7 @@ export default function ShapeCompareLab() {
           <label><span>⌕</span><input aria-label="搜索要对比的鼠标" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={selected.length >= 4 ? "最多选择 4 款" : "输入品牌或型号，例如 Viper V4 Pro…"} disabled={selected.length >= 4} /><small>{selected.length}/4</small></label>
           {query && <div className="mouse-results">{results.length ? results.map((mouse) => {
             const hasOutline = Boolean(shapeData?.shapes[mouse.handle]?.top && shapeData?.shapes[mouse.handle]?.side);
-            return <button key={mouse.id} onClick={() => addMouse(mouse)}><span className="result-thumb">{imageUrl(mouse) ? <img src={imageUrl(mouse)!} alt="" /> : mouse.brand.slice(0, 2)}</span><span><small>{mouse.brand}</small><b>{mouse.name}</b></span><em>{hasOutline ? `${mouse.length ?? "—"} × ${mouse.width ?? "—"} × ${mouse.height ?? "—"} mm` : "参数完整 · 轮廓待补"}</em><i>＋</i></button>;
+            return <button key={mouse.id} onClick={() => addMouse(mouse)}><span className="result-thumb">{imageUrl(mouse) ? <img className={mouse.localImage ? "local-product-photo" : undefined} src={imageUrl(mouse)!} alt="" /> : mouse.brand.slice(0, 2)}</span><span><small>{mouse.brand}</small><b>{mouse.name}</b></span><em>{hasOutline ? `${mouse.length ?? "—"} × ${mouse.width ?? "—"} × ${mouse.height ?? "—"} mm` : "参数完整 · 轮廓待补"}</em><i>＋</i></button>;
           }) : <p>没有找到匹配型号</p>}</div>}
         </div>
         <div className="view-controls"><span>对齐方式</span>{(["front", "center", "rear"] as Alignment[]).map((item) => <button key={item} className={alignment === item ? "active" : ""} onClick={() => setAlignment(item)}>{item === "front" ? "前端" : item === "center" ? "中心" : "尾部"}</button>)}<button className={showGrid ? "active" : ""} onClick={() => setShowGrid(!showGrid)}>毫米网格</button></div>
