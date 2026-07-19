@@ -34,11 +34,19 @@ test("includes the current flagship comparison defaults", () => {
   assert.ok(handles.has("finalmouse-starlight-x"));
 
   const viperV4 = mice.find((mouse) => mouse.handle === "razer-viper-v4-pro");
+  const viperV3 = mice.find((mouse) => mouse.handle === "razer-viper-v3-pro");
   const gpw5 = mice.find((mouse) => mouse.handle === "logitech-g-pro-x2-superstrike");
   assert.equal(viperV4.releaseDate, "2026-03-24");
   assert.equal(viperV4.polling, 8000);
+  assert.equal(viperV4.price, 1299);
   assert.equal(viperV4.image, "razer-viper-v4-pro.png");
   assert.equal(viperV4.localImage, "mouse-images/razer-viper-v4-pro-official.jpg");
+  assert.deepEqual(
+    [viperV4.length, viperV4.width, viperV4.height, viperV4.shape, viperV4.hump, viperV4.frontFlare, viperV4.sideCurve],
+    [viperV3.length, viperV3.width, viperV3.height, viperV3.shape, viperV3.hump, viperV3.frontFlare, viperV3.sideCurve],
+  );
+  assert.equal(shapeData.shapes[viperV4.handle].top, shapeData.shapes[viperV3.handle].top);
+  assert.equal(shapeData.shapes[viperV4.handle].side, shapeData.shapes[viperV3.handle].side);
   assert.match(gpw5.name, /GPW5 雪豹/);
   assert.equal(gpw5.releaseDate, "2026-02-10");
 });
