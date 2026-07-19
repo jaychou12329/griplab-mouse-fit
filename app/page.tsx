@@ -16,6 +16,7 @@ type Mouse = {
   name: string;
   releaseDate: string | null;
   image: string | null;
+  localImage?: string | null;
   size: string | null;
   sizeRating: number | null;
   length: number | null;
@@ -90,6 +91,7 @@ const label = (value: string | null | undefined) => value ? (zh[value] || value.
 const num = (value: number | null | undefined, unit = "") => value == null ? "—" : `${value.toLocaleString()}${unit}`;
 
 function imageUrl(mouse: Mouse, size = 560) {
+  if (mouse.localImage) return assetUrl(`/${mouse.localImage.replace(/^\/+/, "")}`);
   if (!mouse.image) return null;
   if (STATIC_IMAGES) return assetUrl(`/mouse-images/${encodeURIComponent(mouse.handle)}.webp`);
   const file = mouse.image;
@@ -127,7 +129,7 @@ function MouseImage({ mouse, eager = false }: { mouse: Mouse; eager?: boolean })
   const [failed, setFailed] = useState(false);
   const src = imageUrl(mouse);
   if (!src || failed) return <div className="image-fallback"><span>{mouse.brand.slice(0, 2)}</span><b>{mouse.model.slice(0, 1)}</b></div>;
-  return <img src={src} alt={`${mouse.brand} ${mouse.name}`} loading={eager ? "eager" : "lazy"} onError={() => setFailed(true)} />;
+  return <img className={mouse.localImage ? "local-product-photo" : undefined} src={src} alt={`${mouse.brand} ${mouse.name}`} loading={eager ? "eager" : "lazy"} onError={() => setFailed(true)} />;
 }
 
 function Check({ value }: { value: boolean | null }) {

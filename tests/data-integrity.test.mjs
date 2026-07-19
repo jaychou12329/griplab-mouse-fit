@@ -37,6 +37,8 @@ test("includes the current flagship comparison defaults", () => {
   const gpw5 = mice.find((mouse) => mouse.handle === "logitech-g-pro-x2-superstrike");
   assert.equal(viperV4.releaseDate, "2026-03-24");
   assert.equal(viperV4.polling, 8000);
+  assert.equal(viperV4.image, "razer-viper-v4-pro.png");
+  assert.equal(viperV4.localImage, "mouse-images/razer-viper-v4-pro-official.jpg");
   assert.match(gpw5.name, /GPW5 雪豹/);
   assert.equal(gpw5.releaseDate, "2026-02-10");
 });
