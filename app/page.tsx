@@ -223,7 +223,7 @@ export default function Home() {
         </div>
         <div className="hero-product">
           <div className="hero-grid" />
-          {featureMouse && <><div className="hero-image"><MouseImage mouse={featureMouse} eager /></div><div className="hero-card"><small>2026 NEW · SLX NIGHTFALL</small><b>{featureMouse.brand}</b><strong>{featureMouse.name}</strong><span>{fitScore(featureMouse, hand, grip)}% 适配</span></div></>}
+          {featureMouse && <><div className="hero-image"><img src="/slx-nightfall-hero.jpg" alt="Finalmouse SLX Nightfall 正面图" loading="eager" /></div><div className="hero-card"><small>2026 NEW · SLX NIGHTFALL</small><b>{featureMouse.brand}</b><strong>{featureMouse.name}</strong><span>{fitScore(featureMouse, hand, grip)}% 适配</span></div></>}
           <div className="measure-line measure-x">长度 / LENGTH</div><div className="measure-line measure-y">宽度 / WIDTH</div>
         </div>
       </section>
