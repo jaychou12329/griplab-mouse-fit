@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import ShapeCompareLab from "./components/ShapeCompareLab";
 
 type GripKey = "palm" | "relaxedClaw" | "forwardClaw" | "rearClaw" | "claw" | "fingertip";
 type SortKey = "fit" | "newest" | "weight" | "polling" | "name";
@@ -188,7 +189,7 @@ export default function Home() {
   const totalPages = Math.max(1, Math.ceil(results.length / PAGE_SIZE));
   const visible = results.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const compared = compare.map((id) => mice.find((mouse) => mouse.id === id)).filter(Boolean) as Mouse[];
-  const heroMouse = results[0] || mice.find((mouse) => mouse.handle === "razer-viper-v3-pro") || mice[0];
+  const heroMouse = results[0] || mice.find((mouse) => mouse.handle === "razer-viper-v4-pro") || mice[0];
   const featureMouse = mice.find((mouse) => mouse.handle === "finalmouse-starlight-x") || heroMouse;
   const selectedGrip = grips.find((item) => item.key === grip)!;
 
@@ -209,7 +210,7 @@ export default function Home() {
       <header className="topbar">
         <a className="logo" href="#top"><span className="logo-symbol">G</span><span><b>GRIPLAB</b><small>电竞鼠标选择器</small></span></a>
         <label className="header-search"><span>⌕</span><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="搜索品牌、型号、传感器…" /><kbd>/</kbd></label>
-        <nav><a href="#finder">握感匹配</a><a href="#catalog">全部鼠标</a><a href="/shape-compare">模具对比</a><button onClick={() => setCompareOpen(true)}>参数对比 <b>{compare.length}</b></button></nav>
+        <nav><a href="#finder">握感匹配</a><a href="#catalog">全部鼠标</a><a href="#shape-compare">模具对比</a><button onClick={() => setCompareOpen(true)}>参数对比 <b>{compare.length}</b></button></nav>
       </header>
 
       <section className="hero" id="top">
@@ -217,7 +218,7 @@ export default function Home() {
           <div className="database-pill"><i /> ELOSHAPES DATA · 2026</div>
           <h1>不是最贵的。<br /><em>是最合手的。</em></h1>
           <p>完整收录 <b>{mice.length || "1,598"}</b> 款电竞鼠标、<b>{brandCounts.size || "192"}</b> 个品牌。先确定手型和握法，再看传感器、重量和价格。</p>
-          <div className="hero-actions"><a href="#finder">开始测握感 <span>→</span></a><a href="/shape-compare" className="quiet">进入模具对比</a></div>
+          <div className="hero-actions"><a href="#finder">开始测握感 <span>→</span></a><a href="#shape-compare" className="quiet">进入模具对比</a></div>
           <div className="hero-proof"><span><b>1,598</b>鼠标型号</span><span><b>40+</b>详细字段</span><span><b>6</b>种握法</span></div>
         </div>
         <div className="hero-product">
@@ -237,6 +238,8 @@ export default function Home() {
       </section>
 
       <section className="brand-strip"><span>热门品牌</span><div>{quickBrands.filter((item) => brandCounts.has(item)).map((brand) => <button key={brand} className={selectedBrands.includes(brand) ? "active" : ""} onClick={() => toggleBrand(brand)}>{brand}<small>{brandCounts.get(brand)}</small></button>)}</div></section>
+
+      <ShapeCompareLab />
 
       <section className="catalog" id="catalog">
         <div className="catalog-head"><div><span className="section-kicker">FULL DATABASE</span><h2>全部鼠标库</h2><p>共 {mice.length.toLocaleString()} 款 · 当前显示 {results.length.toLocaleString()} 款</p></div><div className="catalog-actions"><button className="mobile-filter-button" onClick={() => setMobileFilters(true)}>筛选器</button><select aria-label="排序" value={sort} onChange={(e) => setSort(e.target.value as SortKey)}><option value="fit">适配度优先</option><option value="newest">新品优先</option><option value="weight">重量从轻到重</option><option value="polling">回报率从高到低</option><option value="name">品牌名称</option></select><button className="reset" onClick={resetFilters}>重置筛选</button></div></div>
@@ -266,7 +269,7 @@ export default function Home() {
 
       <section className="data-note"><div><span className="section-kicker">ABOUT THE DATA</span><h2>参数透明，推荐有依据。</h2></div><div className="data-points"><span><b>01</b><strong>完整目录</strong><p>收录 EloShapes 公开目录当前的 1,598 款鼠标，包含 192 个品牌。</p></span><span><b>02</b><strong>详细硬件</strong><p>尺寸、模具、传感器、MCU、微动、编码器与按键数据集中展示。</p></span><span><b>03</b><strong>握法推算</strong><p>适配分是基于尺寸与模具特征的算法建议，不代替实际试握。</p></span></div></section>
 
-      <footer><div className="footer-main"><div className="logo inverted"><span className="logo-symbol">G</span><span><b>GRIPLAB</b><small>电竞鼠标选择器</small></span></div><p>从手型出发，找到真正适合你的电竞鼠标。</p><a href="https://www.eloshapes.com/mouse/browse?view=table" target="_blank" rel="noreferrer">数据与产品图片来源：EloShapes ↗</a></div><div className="creator"><span>CREATOR / 创作者</span><b>微信 p1341026</b></div><div className="legal">数据更新时间：2026-07 · 价格仅供参考，购买前请以实际销售页面为准。</div></footer>
+      <footer><div className="footer-main"><div className="logo inverted"><span className="logo-symbol">G</span><span><b>GRIPLAB</b><small>电竞鼠标选择器</small></span></div><p>从手型出发，找到真正适合你的电竞鼠标。</p><a href="https://www.eloshapes.com/mouse/browse?view=table" target="_blank" rel="noreferrer">数据与产品图片来源：EloShapes ↗</a></div><div className="creator"><span>CREATOR</span><b>作者：我的手机没电了 p1341026</b></div><div className="legal">数据更新时间：2026-07 · 价格仅供参考，购买前请以实际销售页面为准。</div></footer>
 
       {compare.length > 0 && <button className="compare-float" onClick={() => setCompareOpen(true)}><span>已选 {compare.length}/4</span><b>打开横向对比</b><i>↗</i></button>}
 

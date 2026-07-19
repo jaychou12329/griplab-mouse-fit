@@ -23,15 +23,12 @@ test("renders the mouse database", async () => {
   assert.match(html, /全部鼠标库/);
   assert.match(html, /搜索全部品牌/);
   assert.match(html, /模具对比/);
+  assert.match(html, /真实模具叠加/);
+  assert.match(html, /作者：我的手机没电了 p1341026/);
 });
 
-test("renders the shape comparison lab", async () => {
+test("keeps the legacy shape comparison link inside the same site", async () => {
   const response = await render("/shape-compare");
-  assert.equal(response.status, 200);
-
-  const html = await response.text();
-  assert.match(html, /模具实验室/);
-  assert.match(html, /俯视/);
-  assert.match(html, /侧视/);
-  assert.match(html, /模具参数横向比较/);
+  assert.ok(response.status === 200 || response.status === 307 || response.status === 308);
+  if (response.status !== 200) assert.ok(response.headers.get("location")?.endsWith("/#shape-compare"));
 });
