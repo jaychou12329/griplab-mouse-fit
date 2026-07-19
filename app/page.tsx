@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import ShapeCompareLab from "./components/ShapeCompareLab";
 
 type GripKey = "palm" | "relaxedClaw" | "forwardClaw" | "rearClaw" | "claw" | "fingertip";
@@ -72,6 +72,9 @@ const budgetTiers = [
   { key: "1000", label: "1000 元以上", range: "顶级限定", min: 1000, max: 5000 },
 ] as const;
 const PAGE_SIZE = 24;
+const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH || "";
+const STATIC_IMAGES = process.env.NEXT_PUBLIC_GITHUB_PAGES === "true";
+const assetUrl = (path: string) => `${BASE_PATH}${path}`;
 
 const zh: Record<string, string> = {
   small: "小型", medium: "中型", large: "大型", fingertip: "指握型",
@@ -85,8 +88,10 @@ const zh: Record<string, string> = {
 const label = (value: string | null | undefined) => value ? (zh[value] || value.replaceAll(" - ", " · ")) : "—";
 const num = (value: number | null | undefined, unit = "") => value == null ? "—" : `${value.toLocaleString()}${unit}`;
 
-function imageUrl(file: string | null, size = 560) {
-  if (!file) return null;
+function imageUrl(mouse: Mouse, size = 560) {
+  if (!mouse.image) return null;
+  if (STATIC_IMAGES) return assetUrl(`/mouse-images/${encodeURIComponent(mouse.handle)}.webp`);
+  const file = mouse.image;
   return `/api/mouse-image?file=${encodeURIComponent(file)}&size=${size}`;
 }
 
@@ -119,7 +124,7 @@ function bestGrips(mouse: Mouse) {
 
 function MouseImage({ mouse, eager = false }: { mouse: Mouse; eager?: boolean }) {
   const [failed, setFailed] = useState(false);
-  const src = imageUrl(mouse.image);
+  const src = imageUrl(mouse);
   if (!src || failed) return <div className="image-fallback"><span>{mouse.brand.slice(0, 2)}</span><b>{mouse.model.slice(0, 1)}</b></div>;
   return <img src={src} alt={`${mouse.brand} ${mouse.name}`} loading={eager ? "eager" : "lazy"} onError={() => setFailed(true)} />;
 }
@@ -138,7 +143,7 @@ export default function Home() {
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [shape, setShape] = useState("all");
   const [wireless, setWireless] = useState("all");
-  const [weightMax, setWeightMax] = useState(120);
+  const [weightMax, setWeightMax] = useState(180);
   const [budget, setBudget] = useState<[number, number]>([0, 5000]);
   const [includeUnknownPrice, setIncludeUnknownPrice] = useState(true);
   const [sort, setSort] = useState<SortKey>("fit");
@@ -148,12 +153,28 @@ export default function Home() {
   const [compareOpen, setCompareOpen] = useState(false);
   const [fitOpen, setFitOpen] = useState(true);
   const [mobileFilters, setMobileFilters] = useState(false);
+  const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    fetch("/mice-database.json")
+    fetch(assetUrl("/mice-database.json"))
       .then((res) => res.json())
       .then((data: Mouse[]) => setMice(data))
       .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    function handleShortcut(event: KeyboardEvent) {
+      const target = event.target as HTMLElement | null;
+      const isTyping = target?.tagName === "INPUT" || target?.tagName === "TEXTAREA" || target?.isContentEditable;
+      if (event.key === "/" && !isTyping) {
+        event.preventDefault();
+        searchRef.current?.focus();
+        searchRef.current?.select();
+      }
+      if (event.key === "Escape" && document.activeElement === searchRef.current) searchRef.current?.blur();
+    }
+    window.addEventListener("keydown", handleShortcut);
+    return () => window.removeEventListener("keydown", handleShortcut);
   }, []);
 
   const brandCounts = useMemo(() => {
@@ -186,7 +207,7 @@ export default function Home() {
       if (selectedBrands.length && !selectedBrands.includes(mouse.brand)) return false;
       if (shape !== "all" && mouse.shape !== shape) return false;
       if (wireless !== "all" && mouse.wireless !== (wireless === "wireless")) return false;
-      if (mouse.weight != null && mouse.weight > weightMax) return false;
+      if (weightMax < 180 && mouse.weight != null && mouse.weight > weightMax) return false;
       if (mouse.price == null) return includeUnknownPrice;
       return mouse.price >= budget[0] && mouse.price <= budget[1];
     }).map((mouse) => ({ ...mouse, score: fitScore(mouse, hand, grip) }));
@@ -200,6 +221,8 @@ export default function Home() {
     return filtered;
   }, [budget, grip, hand, includeUnknownPrice, mice, query, selectedBrands, shape, sort, weightMax, wireless]);
 
+  // The catalog page is UI state that must reset whenever its filter inputs change.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => setPage(1), [budget, grip, hand, includeUnknownPrice, query, selectedBrands, shape, sort, weightMax, wireless]);
 
   const totalPages = Math.max(1, Math.ceil(results.length / PAGE_SIZE));
@@ -218,7 +241,7 @@ export default function Home() {
   }
 
   function resetFilters() {
-    setQuery(""); setBrandQuery(""); setSelectedBrands([]); setShape("all"); setWireless("all"); setWeightMax(120); setBudget([0, 5000]); setIncludeUnknownPrice(true);
+    setQuery(""); setBrandQuery(""); setSelectedBrands([]); setShape("all"); setWireless("all"); setWeightMax(180); setBudget([0, 5000]); setIncludeUnknownPrice(true);
   }
 
   function selectBudgetTier(tier: (typeof budgetTiers)[number]) {
@@ -230,7 +253,7 @@ export default function Home() {
     <main>
       <header className="topbar">
         <a className="logo" href="#top"><span className="logo-symbol">G</span><span><b>GRIPLAB</b><small>电竞鼠标选择器</small></span></a>
-        <label className="header-search"><span>⌕</span><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="搜索品牌、型号、传感器…" /><kbd>/</kbd></label>
+        <label className="header-search"><span>⌕</span><input ref={searchRef} aria-label="搜索鼠标" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="搜索品牌、型号、传感器…" /><kbd>/</kbd></label>
         <nav><a href="#finder">握感匹配</a><a href="#catalog">全部鼠标</a><a href="#shape-compare">模具对比</a><button onClick={() => setCompareOpen(true)}>参数对比 <b>{compare.length}</b></button></nav>
       </header>
 
@@ -244,7 +267,7 @@ export default function Home() {
         </div>
         <div className="hero-product">
           <div className="hero-grid" />
-          {featureMouse && <><div className="hero-image"><img src="/slx-nightfall-hero.jpg" alt="Finalmouse SLX Nightfall 正面图" loading="eager" /></div><div className="hero-card"><small>2026 NEW · SLX NIGHTFALL</small><b>{featureMouse.brand}</b><strong>{featureMouse.name}</strong><span>{fitScore(featureMouse, hand, grip)}% 适配</span></div></>}
+          {featureMouse && <><div className="hero-image"><img src={assetUrl("/slx-nightfall-hero.jpg")} alt="Finalmouse SLX Nightfall 正面图" loading="eager" /></div><div className="hero-card"><small>2026 NEW · SLX NIGHTFALL</small><b>{featureMouse.brand}</b><strong>{featureMouse.name}</strong><span>{fitScore(featureMouse, hand, grip)}% 适配</span></div></>}
           <div className="measure-line measure-x">长度 / LENGTH</div><div className="measure-line measure-y">宽度 / WIDTH</div>
         </div>
       </section>
@@ -274,7 +297,7 @@ export default function Home() {
             <div className="filter-group"><h3>搜索全部品牌 <b>{brandCounts.size}</b></h3><label className="brand-search"><span>⌕</span><input aria-label="输入品牌名称" value={brandQuery} onChange={(e) => setBrandQuery(e.target.value)} placeholder="输入品牌，例如 Ninjutso…" />{brandQuery && <button aria-label="清空品牌搜索" onClick={() => setBrandQuery("")}>×</button>}</label><div className="brand-checks brand-checks-scroll">{visibleBrands.map((brand) => <label key={brand}><input type="checkbox" checked={selectedBrands.includes(brand)} onChange={() => toggleBrand(brand)} /><span>{brand}</span><small>{brandCounts.get(brand)}</small></label>)}</div>{visibleBrands.length === 0 && <p className="filter-help">没有找到这个品牌，试试英文名称或缩短关键词。</p>}</div>
             <div className="filter-group"><h3>模具形状</h3><div className="choice-list">{[["all","全部形状"],["symmetrical","对称"],["ergonomic","人体工学"],["hybrid","混合型"]].map(([key,name]) => <button key={key} className={shape === key ? "active" : ""} onClick={() => setShape(key)}><span>{name}</span>{shape === key && <b>✓</b>}</button>)}</div></div>
             <div className="filter-group"><h3>连接方式</h3><div className="choice-list">{[["all","不限"],["wireless","无线"],["wired","有线"]].map(([key,name]) => <button key={key} className={wireless === key ? "active" : ""} onClick={() => setWireless(key)}><span>{name}</span>{wireless === key && <b>✓</b>}</button>)}</div></div>
-            <div className="filter-group"><h3>最高重量 <b>{weightMax}g</b></h3><input aria-label="最高重量" type="range" min="35" max="180" step="5" value={weightMax} onChange={(e) => setWeightMax(Number(e.target.value))} /><div className="range-labels"><span>35g</span><span>180g</span></div></div>
+            <div className="filter-group"><h3>最高重量 <b>{weightMax === 180 ? "不限" : `${weightMax}g`}</b></h3><input aria-label="最高重量" type="range" min="35" max="180" step="5" value={weightMax} onChange={(e) => setWeightMax(Number(e.target.value))} /><div className="range-labels"><span>35g</span><span>不限</span></div></div>
             <div className="filter-group"><h3>参考预算</h3><div className="budget-box"><label>¥<input aria-label="最低预算" type="number" value={budget[0]} min="0" max={budget[1]} onChange={(e) => setBudget([Number(e.target.value), budget[1]])} /></label><span>—</span><label>¥<input aria-label="最高预算" type="number" value={budget[1]} min={budget[0]} max="5000" onChange={(e) => setBudget([budget[0], Number(e.target.value)])} /></label></div><label className="unknown-toggle"><input type="checkbox" checked={includeUnknownPrice} onChange={(e) => setIncludeUnknownPrice(e.target.checked)} /><span>同时显示价格待补充的型号</span></label><p className="filter-help">完整参数库不包含实时售价；参考价只覆盖部分热门型号。</p></div>
             <button className="apply-mobile" onClick={() => setMobileFilters(false)}>查看 {results.length} 款结果</button>
           </aside>

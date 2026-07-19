@@ -12,7 +12,7 @@ export async function GET(request: Request) {
   const requestedSize = Number(url.searchParams.get("size") || 560);
   const size = Math.min(1200, Math.max(160, Number.isFinite(requestedSize) ? requestedSize : 560));
 
-  if (!file || file.includes("..") || !/^[a-zA-Z0-9._/\- ]+$/.test(file)) {
+  if (!file || file.includes("..") || !/^[a-zA-Z0-9._/+\- ]+$/.test(file)) {
     return new Response("Invalid image path", { status: 400 });
   }
 
