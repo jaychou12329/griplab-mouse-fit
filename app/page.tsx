@@ -61,6 +61,16 @@ const grips: { key: GripKey; label: string; en: string; desc: string; mark: stri
 ];
 
 const quickBrands = ["Finalmouse", "Logitech", "Razer", "ZOWIE", "Pulsar", "LAMZU", "ATK", "VXE", "Endgame Gear", "WLmouse", "SteelSeries", "ASUS", "VAXEE"];
+const budgetTiers = [
+  { key: "all", label: "不限预算", range: "全部价位", min: 0, max: 5000 },
+  { key: "under200", label: "200 元内", range: "入门实用", min: 0, max: 199 },
+  { key: "200", label: "200–299", range: "高性价比", min: 200, max: 299 },
+  { key: "300", label: "300–399", range: "主流进阶", min: 300, max: 399 },
+  { key: "400", label: "400–499", range: "中高端", min: 400, max: 499 },
+  { key: "500", label: "500–699", range: "高端竞技", min: 500, max: 699 },
+  { key: "700", label: "700–999", range: "旗舰级", min: 700, max: 999 },
+  { key: "1000", label: "1000 元以上", range: "顶级限定", min: 1000, max: 5000 },
+] as const;
 const PAGE_SIZE = 24;
 
 const zh: Record<string, string> = {
@@ -129,7 +139,7 @@ export default function Home() {
   const [shape, setShape] = useState("all");
   const [wireless, setWireless] = useState("all");
   const [weightMax, setWeightMax] = useState(120);
-  const [budget, setBudget] = useState<[number, number]>([0, 1600]);
+  const [budget, setBudget] = useState<[number, number]>([0, 5000]);
   const [includeUnknownPrice, setIncludeUnknownPrice] = useState(true);
   const [sort, setSort] = useState<SortKey>("fit");
   const [page, setPage] = useState(1);
@@ -151,6 +161,12 @@ export default function Home() {
     mice.forEach((mouse) => counts.set(mouse.brand, (counts.get(mouse.brand) || 0) + 1));
     return counts;
   }, [mice]);
+
+  const priceTierCounts = useMemo(() => Object.fromEntries(budgetTiers.map((tier) => [
+    tier.key,
+    tier.key === "all" ? mice.length : mice.filter((mouse) => mouse.price != null && mouse.price >= tier.min && mouse.price <= tier.max).length,
+  ])), [mice]);
+  const activeBudgetKey = budgetTiers.find((tier) => tier.min === budget[0] && tier.max === budget[1])?.key || "custom";
 
   const visibleBrands = useMemo(() => {
     const needle = brandQuery.trim().toLowerCase();
@@ -202,7 +218,12 @@ export default function Home() {
   }
 
   function resetFilters() {
-    setQuery(""); setBrandQuery(""); setSelectedBrands([]); setShape("all"); setWireless("all"); setWeightMax(120); setBudget([0, 1600]); setIncludeUnknownPrice(true);
+    setQuery(""); setBrandQuery(""); setSelectedBrands([]); setShape("all"); setWireless("all"); setWeightMax(120); setBudget([0, 5000]); setIncludeUnknownPrice(true);
+  }
+
+  function selectBudgetTier(tier: (typeof budgetTiers)[number]) {
+    setBudget([tier.min, tier.max]);
+    setIncludeUnknownPrice(tier.key === "all");
   }
 
   return (
@@ -243,6 +264,10 @@ export default function Home() {
 
       <section className="catalog" id="catalog">
         <div className="catalog-head"><div><span className="section-kicker">FULL DATABASE</span><h2>全部鼠标库</h2><p>共 {mice.length.toLocaleString()} 款 · 当前显示 {results.length.toLocaleString()} 款</p></div><div className="catalog-actions"><button className="mobile-filter-button" onClick={() => setMobileFilters(true)}>筛选器</button><select aria-label="排序" value={sort} onChange={(e) => setSort(e.target.value as SortKey)}><option value="fit">适配度优先</option><option value="newest">新品优先</option><option value="weight">重量从轻到重</option><option value="polling">回报率从高到低</option><option value="name">品牌名称</option></select><button className="reset" onClick={resetFilters}>重置筛选</button></div></div>
+        <div className="price-tier-panel">
+          <div className="price-tier-heading"><span>PRICE RANGE</span><div><h3>按价位选鼠标</h3><p>选中价位后，只显示已有参考价的型号；也可以在左侧输入任意预算。</p></div></div>
+          <div className="price-tier-list">{budgetTiers.map((tier) => <button key={tier.key} className={activeBudgetKey === tier.key ? "active" : ""} aria-pressed={activeBudgetKey === tier.key} onClick={() => selectBudgetTier(tier)}><span>{tier.label}</span><b>{tier.range}</b><small>{loading ? "…" : `${priceTierCounts[tier.key] || 0} 款`}</small></button>)}</div>
+        </div>
         <div className="catalog-layout">
           <aside className={`filters ${mobileFilters ? "mobile-open" : ""}`}>
             <div className="filter-mobile-head"><b>筛选器</b><button onClick={() => setMobileFilters(false)}>×</button></div>
