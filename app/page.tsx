@@ -47,6 +47,7 @@ type Mouse = {
   encoders: Part[];
   has3d: boolean | null;
   price: number | null;
+  specialFeatures?: string[];
 };
 
 const grips: { key: GripKey; label: string; en: string; desc: string; mark: string }[] = [
@@ -58,8 +59,7 @@ const grips: { key: GripKey; label: string; en: string; desc: string; mark: stri
   { key: "fingertip", label: "指握", en: "FINGERTIP", desc: "仅指尖接触，优先短小轻量", mark: "···" },
 ];
 
-const quickBrands = ["Logitech", "Razer", "ZOWIE", "Pulsar", "LAMZU", "ATK", "VXE", "Endgame Gear", "WLmouse", "SteelSeries", "ASUS", "VAXEE"];
-const IMAGE_BASE = "https://qyjffrmfirkwcwempawu.supabase.co/storage/v1/render/image/public/images/products/";
+const quickBrands = ["Finalmouse", "Logitech", "Razer", "ZOWIE", "Pulsar", "LAMZU", "ATK", "VXE", "Endgame Gear", "WLmouse", "SteelSeries", "ASUS", "VAXEE"];
 const PAGE_SIZE = 24;
 
 const zh: Record<string, string> = {
@@ -76,8 +76,7 @@ const num = (value: number | null | undefined, unit = "") => value == null ? "�
 
 function imageUrl(file: string | null, size = 560) {
   if (!file) return null;
-  const path = file.split("/").map(encodeURIComponent).join("/");
-  return `${IMAGE_BASE}${path}?width=${size}&height=${size}&resize=contain`;
+  return `/api/mouse-image?file=${encodeURIComponent(file)}&size=${size}`;
 }
 
 function idealLength(hand: number, grip: GripKey) {
@@ -178,6 +177,7 @@ export default function Home() {
   const visible = results.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const compared = compare.map((id) => mice.find((mouse) => mouse.id === id)).filter(Boolean) as Mouse[];
   const heroMouse = results[0] || mice.find((mouse) => mouse.handle === "razer-viper-v3-pro") || mice[0];
+  const featureMouse = mice.find((mouse) => mouse.handle === "finalmouse-starlight-x") || heroMouse;
   const selectedGrip = grips.find((item) => item.key === grip)!;
 
   function toggleBrand(brand: string) {
@@ -210,7 +210,7 @@ export default function Home() {
         </div>
         <div className="hero-product">
           <div className="hero-grid" />
-          {heroMouse && <><div className="hero-image"><MouseImage mouse={heroMouse} eager /></div><div className="hero-card"><small>当前首选 · {selectedGrip.label}</small><b>{heroMouse.brand}</b><strong>{heroMouse.name}</strong><span>{fitScore(heroMouse, hand, grip)}% 适配</span></div></>}
+          {featureMouse && <><div className="hero-image"><MouseImage mouse={featureMouse} eager /></div><div className="hero-card"><small>2026 NEW · SLX NIGHTFALL</small><b>{featureMouse.brand}</b><strong>{featureMouse.name}</strong><span>{fitScore(featureMouse, hand, grip)}% 适配</span></div></>}
           <div className="measure-line measure-x">长度 / LENGTH</div><div className="measure-line measure-y">宽度 / WIDTH</div>
         </div>
       </section>
@@ -258,7 +258,7 @@ export default function Home() {
 
       {compare.length > 0 && <button className="compare-float" onClick={() => setCompareOpen(true)}><span>已选 {compare.length}/4</span><b>打开横向对比</b><i>↗</i></button>}
 
-      {detail && <div className="drawer-backdrop" onClick={() => setDetail(null)}><aside className="detail-drawer" role="dialog" aria-modal="true" aria-label={`${detail.brand} ${detail.name} 详细参数`} onClick={(e) => e.stopPropagation()}><button className="drawer-close" onClick={() => setDetail(null)}>×</button><div className="drawer-hero"><div className="drawer-image"><MouseImage mouse={detail} eager /></div><div><span>{detail.brand}</span><h2>{detail.name}</h2><p>{label(detail.size)} · {label(detail.shape)} · {label(detail.hand)}</p><div className="drawer-actions"><button onClick={() => toggleCompare(detail.id)}>{compare.includes(detail.id) ? "✓ 已加入对比" : "+ 加入对比"}</button><a href={`https://www.eloshapes.com/mouse/compare?p=${detail.handle}`} target="_blank" rel="noreferrer">查看 EloShapes ↗</a></div></div></div><SpecSection title="尺寸与模具" rows={[["长度",num(detail.length," mm")],["宽度",num(detail.width," mm")],["高度",num(detail.height," mm")],["重量",num(detail.weight," g")],["背峰位置",label(detail.hump)],["前端外扩",label(detail.frontFlare)],["侧腰曲线",label(detail.sideCurve)],["拇指托",<Check key="thumb" value={detail.thumbRest} />],["无名指托",<Check key="ring" value={detail.ringRest} />]]} /><SpecSection title="传感器与性能" rows={[["传感器",detail.sensor || "—"],["类型",label(detail.sensorType)],["鼠标最高 DPI",num(detail.dpi)],["传感器 DPI",num(detail.sensorDpi)],["回报率",num(detail.polling," Hz")],["追踪速度",num(detail.trackingSpeed," IPS")],["加速度",num(detail.acceleration," G")],["传感器位置",detail.sensorPositionY == null ? "—" : `${detail.sensorPositionY}%`],["MCU",detail.mcu || "—"]]} /><SpecSection title="按键与结构" rows={[["主按键微动",detail.switches.map((item) => item.name).filter(Boolean).join(" / ") || "—"],["微动类型",detail.switches.map((item) => label(item.type)).filter((v) => v !== "—").join(" / ") || "—"],["微动寿命",detail.switches.map((item) => item.lifespan ? `${item.lifespan}M` : null).filter(Boolean).join(" / ") || "—"],["滚轮编码器",detail.encoders.map((item) => item.name).filter(Boolean).join(" / ") || "—"],["侧键",num(detail.sideButtons)],["中键",num(detail.middleButtons)],["热插拔",<Check key="hot" value={detail.hotSwap} />],["连接",detail.wireless == null ? "—" : detail.wireless ? "无线" : "有线"],["材质",label(detail.material)]]} /><div className="source-disclaimer">资料来自 EloShapes 公开页面，字段为 “—” 表示原始资料暂未收录。</div></aside></div>}
+      {detail && <div className="drawer-backdrop" onClick={() => setDetail(null)}><aside className="detail-drawer" role="dialog" aria-modal="true" aria-label={`${detail.brand} ${detail.name} 详细参数`} onClick={(e) => e.stopPropagation()}><button className="drawer-close" onClick={() => setDetail(null)}>×</button><div className="drawer-hero"><div className="drawer-image"><MouseImage mouse={detail} eager /></div><div><span>{detail.brand}</span><h2>{detail.name}</h2><p>{label(detail.size)} · {label(detail.shape)} · {label(detail.hand)}</p><div className="drawer-actions"><button onClick={() => toggleCompare(detail.id)}>{compare.includes(detail.id) ? "✓ 已加入对比" : "+ 加入对比"}</button><a href={`https://www.eloshapes.com/mouse/compare?p=${detail.handle}`} target="_blank" rel="noreferrer">查看 EloShapes ↗</a></div></div></div>{detail.specialFeatures && detail.specialFeatures.length > 0 && <div className="feature-callout"><small>FEATURE HIGHLIGHTS</small><div>{detail.specialFeatures.map((item) => <span key={item}>{item}</span>)}</div></div>}<SpecSection title="尺寸与模具" rows={[["长度",num(detail.length," mm")],["宽度",num(detail.width," mm")],["高度",num(detail.height," mm")],["重量",num(detail.weight," g")],["背峰位置",label(detail.hump)],["前端外扩",label(detail.frontFlare)],["侧腰曲线",label(detail.sideCurve)],["拇指托",<Check key="thumb" value={detail.thumbRest} />],["无名指托",<Check key="ring" value={detail.ringRest} />]]} /><SpecSection title="传感器与性能" rows={[["传感器",detail.sensor || "—"],["类型",label(detail.sensorType)],["鼠标最高 DPI",num(detail.dpi)],["传感器 DPI",num(detail.sensorDpi)],["回报率",num(detail.polling," Hz")],["追踪速度",num(detail.trackingSpeed," IPS")],["加速度",num(detail.acceleration," G")],["传感器位置",detail.sensorPositionY == null ? "—" : `${detail.sensorPositionY}%`],["MCU",detail.mcu || "—"]]} /><SpecSection title="按键与结构" rows={[["主按键微动",detail.switches.map((item) => item.name).filter(Boolean).join(" / ") || "—"],["微动类型",detail.switches.map((item) => label(item.type)).filter((v) => v !== "—").join(" / ") || "—"],["微动寿命",detail.switches.map((item) => item.lifespan ? `${item.lifespan}M` : null).filter(Boolean).join(" / ") || "—"],["滚轮编码器",detail.encoders.map((item) => item.name).filter(Boolean).join(" / ") || "—"],["侧键",num(detail.sideButtons)],["中键",num(detail.middleButtons)],["热插拔",<Check key="hot" value={detail.hotSwap} />],["连接",detail.wireless == null ? "—" : detail.wireless ? "无线" : "有线"],["材质",label(detail.material)]]} /><div className="source-disclaimer">资料来自 EloShapes 公开页面，字段为 “—” 表示原始资料暂未收录。</div></aside></div>}
 
       {compareOpen && <div className="compare-backdrop" onClick={() => setCompareOpen(false)}><section className="compare-modal" role="dialog" aria-modal="true" aria-label="横向对比" onClick={(e) => e.stopPropagation()}><div className="compare-head"><div><span>COMPARE / 横向比较</span><h2>{compared.length ? `${compared.length} 款鼠标对比` : "选择鼠标开始对比"}</h2></div><button onClick={() => setCompareOpen(false)}>×</button></div>{compared.length ? <div className="compare-scroll"><div className="compare-table"><div className="compare-row products"><b>产品</b>{compared.map((mouse) => <div key={mouse.id}><div className="compare-image"><MouseImage mouse={mouse} /></div><small>{mouse.brand}</small><strong>{mouse.name}</strong><button onClick={() => toggleCompare(mouse.id)}>移除</button></div>)}</div>{[["适配分",(m:Mouse)=>`${fitScore(m,hand,grip)}%`],["参考价",(m:Mouse)=>m.price?`¥${m.price}`:"待补充"],["重量",(m:Mouse)=>num(m.weight,"g")],["尺寸",(m:Mouse)=>m.length?`${m.length} × ${m.width} × ${m.height} mm`:"—"],["模具",(m:Mouse)=>`${label(m.size)} · ${label(m.shape)}`],["背峰",(m:Mouse)=>label(m.hump)],["传感器",(m:Mouse)=>m.sensor||"—"],["DPI",(m:Mouse)=>num(m.dpi)],["回报率",(m:Mouse)=>num(m.polling," Hz")],["微动",(m:Mouse)=>m.switches.map(s=>s.name).filter(Boolean).join(" / ")||"—"],["MCU",(m:Mouse)=>m.mcu||"—"],["连接",(m:Mouse)=>m.wireless?"无线":"有线"]].map(([name,getter]) => <div className="compare-row" key={name as string}><b>{name as string}</b>{compared.map((mouse) => <span key={mouse.id}>{(getter as (m: Mouse) => string)(mouse)}</span>)}</div>)}</div></div> : <div className="empty"><b>还没选择鼠标</b><p>在产品卡片右上角点击 +，最多可以选择四款。</p></div>}</section></div>}
     </main>
