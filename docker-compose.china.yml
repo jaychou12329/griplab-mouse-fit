@@ -1,0 +1,12 @@
+services:
+  griplab:
+    build:
+      context: .
+      dockerfile: Dockerfile.china
+      args:
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL}
+    restart: unless-stopped
+    environment:
+      MOUSE_IMAGE_ORIGIN: ${MOUSE_IMAGE_ORIGIN:-https://qyjffrmfirkwcwempawu.supabase.co/storage/v1/render/image/public/images/products/}
+    ports:
+      - "127.0.0.1:3000:3000"
