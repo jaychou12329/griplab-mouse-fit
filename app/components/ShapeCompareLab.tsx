@@ -76,8 +76,7 @@ function OutlineCanvas({ title, note, view, chosen, shapes, alignment, showGrid 
   return <div className={`shape-canvas real-canvas ${showGrid ? "with-grid" : ""}`}>
     <div className="canvas-head"><span>{title}</span><small>{note}</small></div>
     <div className={`real-overlay ${view} align-${alignment}`}>
-      <div className="real-axis horizontal" />
-      <div className="real-axis vertical" />
+      {showGrid && <><div className="real-axis horizontal" /><div className="real-axis vertical" /></>}
       {chosen.map((mouse, index) => {
         const physicalWidth = view === "top" ? (mouse.width || 64) : (mouse.length || 125);
         const physicalHeight = view === "top" ? (mouse.length || 125) : (mouse.height || 40);
