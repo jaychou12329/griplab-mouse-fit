@@ -121,6 +121,7 @@ export default function Home() {
   const [mice, setMice] = useState<Mouse[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
+  const [brandQuery, setBrandQuery] = useState("");
   const [hand, setHand] = useState(18.5);
   const [grip, setGrip] = useState<GripKey>("relaxedClaw");
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
@@ -149,6 +150,17 @@ export default function Home() {
     mice.forEach((mouse) => counts.set(mouse.brand, (counts.get(mouse.brand) || 0) + 1));
     return counts;
   }, [mice]);
+
+  const visibleBrands = useMemo(() => {
+    const needle = brandQuery.trim().toLowerCase();
+    return [...brandCounts.keys()]
+      .filter((brand) => !needle || brand.toLowerCase().includes(needle))
+      .sort((a, b) => {
+        const selectedDelta = Number(selectedBrands.includes(b)) - Number(selectedBrands.includes(a));
+        return selectedDelta || (brandCounts.get(b) || 0) - (brandCounts.get(a) || 0) || a.localeCompare(b);
+      })
+      .slice(0, 60);
+  }, [brandCounts, brandQuery, selectedBrands]);
 
   const results = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -189,7 +201,7 @@ export default function Home() {
   }
 
   function resetFilters() {
-    setQuery(""); setSelectedBrands([]); setShape("all"); setWireless("all"); setWeightMax(120); setBudget([0, 1600]); setIncludeUnknownPrice(true);
+    setQuery(""); setBrandQuery(""); setSelectedBrands([]); setShape("all"); setWireless("all"); setWeightMax(120); setBudget([0, 1600]); setIncludeUnknownPrice(true);
   }
 
   return (
@@ -197,7 +209,7 @@ export default function Home() {
       <header className="topbar">
         <a className="logo" href="#top"><span className="logo-symbol">G</span><span><b>GRIPLAB</b><small>电竞鼠标选择器</small></span></a>
         <label className="header-search"><span>⌕</span><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="搜索品牌、型号、传感器…" /><kbd>/</kbd></label>
-        <nav><a href="#finder">握感匹配</a><a href="#catalog">全部鼠标</a><button onClick={() => setCompareOpen(true)}>对比 <b>{compare.length}</b></button></nav>
+        <nav><a href="#finder">握感匹配</a><a href="#catalog">全部鼠标</a><a href="/shape-compare">模具对比</a><button onClick={() => setCompareOpen(true)}>参数对比 <b>{compare.length}</b></button></nav>
       </header>
 
       <section className="hero" id="top">
@@ -205,7 +217,7 @@ export default function Home() {
           <div className="database-pill"><i /> ELOSHAPES DATA · 2026</div>
           <h1>不是最贵的。<br /><em>是最合手的。</em></h1>
           <p>完整收录 <b>{mice.length || "1,598"}</b> 款电竞鼠标、<b>{brandCounts.size || "192"}</b> 个品牌。先确定手型和握法，再看传感器、重量和价格。</p>
-          <div className="hero-actions"><a href="#finder">开始测握感 <span>→</span></a><a href="#catalog" className="quiet">直接浏览全部</a></div>
+          <div className="hero-actions"><a href="#finder">开始测握感 <span>→</span></a><a href="/shape-compare" className="quiet">进入模具对比</a></div>
           <div className="hero-proof"><span><b>1,598</b>鼠标型号</span><span><b>40+</b>详细字段</span><span><b>6</b>种握法</span></div>
         </div>
         <div className="hero-product">
@@ -231,7 +243,7 @@ export default function Home() {
         <div className="catalog-layout">
           <aside className={`filters ${mobileFilters ? "mobile-open" : ""}`}>
             <div className="filter-mobile-head"><b>筛选器</b><button onClick={() => setMobileFilters(false)}>×</button></div>
-            <div className="filter-group"><h3>搜索品牌</h3><div className="brand-checks">{quickBrands.filter((item) => brandCounts.has(item)).map((brand) => <label key={brand}><input type="checkbox" checked={selectedBrands.includes(brand)} onChange={() => toggleBrand(brand)} /><span>{brand}</span><small>{brandCounts.get(brand)}</small></label>)}</div></div>
+            <div className="filter-group"><h3>搜索全部品牌 <b>{brandCounts.size}</b></h3><label className="brand-search"><span>⌕</span><input aria-label="输入品牌名称" value={brandQuery} onChange={(e) => setBrandQuery(e.target.value)} placeholder="输入品牌，例如 Ninjutso…" />{brandQuery && <button aria-label="清空品牌搜索" onClick={() => setBrandQuery("")}>×</button>}</label><div className="brand-checks brand-checks-scroll">{visibleBrands.map((brand) => <label key={brand}><input type="checkbox" checked={selectedBrands.includes(brand)} onChange={() => toggleBrand(brand)} /><span>{brand}</span><small>{brandCounts.get(brand)}</small></label>)}</div>{visibleBrands.length === 0 && <p className="filter-help">没有找到这个品牌，试试英文名称或缩短关键词。</p>}</div>
             <div className="filter-group"><h3>模具形状</h3><div className="choice-list">{[["all","全部形状"],["symmetrical","对称"],["ergonomic","人体工学"],["hybrid","混合型"]].map(([key,name]) => <button key={key} className={shape === key ? "active" : ""} onClick={() => setShape(key)}><span>{name}</span>{shape === key && <b>✓</b>}</button>)}</div></div>
             <div className="filter-group"><h3>连接方式</h3><div className="choice-list">{[["all","不限"],["wireless","无线"],["wired","有线"]].map(([key,name]) => <button key={key} className={wireless === key ? "active" : ""} onClick={() => setWireless(key)}><span>{name}</span>{wireless === key && <b>✓</b>}</button>)}</div></div>
             <div className="filter-group"><h3>最高重量 <b>{weightMax}g</b></h3><input aria-label="最高重量" type="range" min="35" max="180" step="5" value={weightMax} onChange={(e) => setWeightMax(Number(e.target.value))} /><div className="range-labels"><span>35g</span><span>180g</span></div></div>

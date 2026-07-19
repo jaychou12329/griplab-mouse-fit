@@ -1,4 +1,10 @@
-const IMAGE_ORIGIN = "https://qyjffrmfirkwcwempawu.supabase.co/storage/v1/render/image/public/images/products/";
+const DEFAULT_IMAGE_ORIGIN = "https://qyjffrmfirkwcwempawu.supabase.co/storage/v1/render/image/public/images/products/";
+
+function imageOrigin() {
+  const configured = process.env.MOUSE_IMAGE_ORIGIN?.trim();
+  const origin = configured || DEFAULT_IMAGE_ORIGIN;
+  return origin.endsWith("/") ? origin : `${origin}/`;
+}
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -11,7 +17,18 @@ export async function GET(request: Request) {
   }
 
   const path = file.split("/").map(encodeURIComponent).join("/");
-  const upstream = await fetch(`${IMAGE_ORIGIN}${path}?width=${size}&height=${size}&resize=contain`, {
+  const origin = imageOrigin();
+  const upstreamUrl = new URL(path, origin);
+
+  // EloShapes' Supabase renderer accepts resize parameters. A self-hosted
+  // COS/OSS mirror can serve the original image without these parameters.
+  if (origin.includes("/storage/v1/render/image/")) {
+    upstreamUrl.searchParams.set("width", String(size));
+    upstreamUrl.searchParams.set("height", String(size));
+    upstreamUrl.searchParams.set("resize", "contain");
+  }
+
+  const upstream = await fetch(upstreamUrl, {
     headers: { Accept: "image/avif,image/webp,image/png,image/jpeg" },
   });
 
