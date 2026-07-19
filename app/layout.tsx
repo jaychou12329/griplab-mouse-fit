@@ -2,9 +2,16 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "GRIPLAB 握感研究所｜电竞鼠标智能推荐",
-  description: "输入手长、握法和预算，按模具与详细参数找到适合你的电竞鼠标，并支持多款横向对比。",
+  metadataBase: new URL("https://griplab-mouse-fit.spunky-pin-3764.chatgpt.site"),
+  title: "GRIPLAB｜电竞鼠标选择器与完整参数库",
+  description: "收录 1,598 款电竞鼠标。输入手长与细分握法，按品牌、重量、价格、模具和传感器筛选，并支持详细参数对比。",
   icons: { icon: "/favicon.svg" },
+  openGraph: {
+    title: "GRIPLAB｜电竞鼠标选择器",
+    description: "1,598 款鼠标 · 6 种握法 · 完整参数对比",
+    images: [{ url: "/og.png", width: 1728, height: 927, alt: "GRIPLAB 电竞鼠标选择器" }],
+  },
+  twitter: { card: "summary_large_image", images: ["/og.png"] },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
