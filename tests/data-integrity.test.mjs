@@ -58,11 +58,21 @@ test("includes the current flagship comparison defaults", () => {
   assert.equal(titanMini.priceStatus, "china-price-unverified");
 });
 
-test("places every known reference price in a visible tier", () => {
+test("places every mouse reference price in exactly one visible tier", () => {
   const tiers = [[0, 199], [200, 299], [300, 399], [400, 499], [500, 699], [700, 999], [1000, 5000]];
   const priced = mice.filter((mouse) => mouse.price != null);
-  assert.ok(priced.length > 0);
+  assert.equal(priced.length, mice.length);
   for (const mouse of priced) {
+    assert.ok(Number.isFinite(mouse.price));
+    assert.ok(mouse.price >= 0 && mouse.price <= 5000, `${mouse.handle}: ${mouse.price}`);
     assert.equal(tiers.filter(([min, max]) => mouse.price >= min && mouse.price <= max).length, 1, `${mouse.handle}: ${mouse.price}`);
+    if (mouse.priceType != null) {
+      assert.ok(["listed", "estimated"].includes(mouse.priceType), `${mouse.handle}: ${mouse.priceType}`);
+      assert.ok(mouse.priceSource, `${mouse.handle}: missing price source`);
+      assert.ok(mouse.priceCheckedAt, `${mouse.handle}: missing price checked date`);
+    }
   }
+
+  assert.ok(mice.filter((mouse) => mouse.priceType === "listed").length > 500);
+  assert.ok(mice.some((mouse) => mouse.priceType === "estimated"));
 });
