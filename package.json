@@ -14,7 +14,8 @@
     "sync:images": "node scripts/sync-mouse-images.mjs",
     "start:china": "next start -H 0.0.0.0 -p 3000",
     "sync:shapes": "node scripts/sync-mouse-shapes.mjs",
-    "test": "npm run build && node --test tests/rendered-html.test.mjs tests/data-integrity.test.mjs",
+    "check:new-mice": "node scripts/check-new-mice.mjs",
+    "test": "npm run build && node --test tests/rendered-html.test.mjs tests/data-integrity.test.mjs tests/mouse-fit.test.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "drizzle-kit generate"
   },

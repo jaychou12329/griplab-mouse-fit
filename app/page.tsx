@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import ShapeCompareLab from "./components/ShapeCompareLab";
+import { fitScore, idealLength, recommendedGripKeys, suitableHandRange, type GripKey } from "./mouse-fit";
 
-type GripKey = "palm" | "relaxedClaw" | "forwardClaw" | "rearClaw" | "claw" | "fingertip";
 type SortKey = "fit" | "newest" | "weight" | "polling" | "name";
 
 type Part = { name: string | null; type: string | null; lifespan: number | null; force?: number | null; steps?: number | null };
@@ -49,6 +49,11 @@ type Mouse = {
   encoders: Part[];
   has3d: boolean | null;
   price: number | null;
+  globalMsrp?: number | null;
+  globalCurrency?: string | null;
+  priceStatus?: string | null;
+  priceSource?: string | null;
+  priceCheckedAt?: string | null;
   specialFeatures?: string[];
 };
 
@@ -102,31 +107,9 @@ function imageUrl(mouse: Mouse, size = 560) {
   return `/api/mouse-image?file=${encodeURIComponent(file)}&size=${size}`;
 }
 
-function idealLength(hand: number, grip: GripKey) {
-  const ratios: Record<GripKey, number> = { palm: .70, relaxedClaw: .68, forwardClaw: .65, rearClaw: .67, claw: .66, fingertip: .62 };
-  return hand * 10 * ratios[grip];
-}
-
-function fitScore(mouse: Mouse, hand: number, grip: GripKey) {
-  if (!mouse.length || !mouse.width || !mouse.height) return 50;
-  const targetL = idealLength(hand, grip);
-  const targetW = hand * 3.45;
-  const lengthScore = Math.max(25, 100 - Math.abs(mouse.length - targetL) * 4.2);
-  const widthScore = Math.max(35, 100 - Math.abs(mouse.width - targetW) * 5.4);
-  let shapeScore = 72;
-  const hump = mouse.hump || "";
-  if (grip === "palm") shapeScore = mouse.shape === "ergonomic" ? 100 : mouse.height >= 40 ? 88 : 68;
-  if (grip === "relaxedClaw") shapeScore = hump.includes("back") || mouse.shape === "ergonomic" ? 94 : 80;
-  if (grip === "forwardClaw") shapeScore = hump === "center" && mouse.height <= 41 ? 98 : hump.includes("minimal") ? 86 : 68;
-  if (grip === "rearClaw") shapeScore = hump.includes("moderate") || hump.includes("aggressive") ? 100 : hump.includes("minimal") ? 82 : 64;
-  if (grip === "claw") shapeScore = hump.includes("back") ? 96 : 84;
-  if (grip === "fingertip") shapeScore = (mouse.size === "small" || mouse.size === "fingertip") && mouse.length <= targetL + 5 ? 100 : mouse.length <= targetL + 9 ? 82 : 58;
-  const weightScore = mouse.weight == null ? 72 : Math.max(48, 100 - Math.max(0, mouse.weight - (grip === "palm" ? 78 : 62)) * 1.5);
-  return Math.round(lengthScore * .42 + widthScore * .18 + shapeScore * .30 + weightScore * .10);
-}
-
-function bestGrips(mouse: Mouse) {
-  return grips.map((item) => ({ ...item, score: fitScore(mouse, 18.5, item.key) })).sort((a, b) => b.score - a.score).slice(0, 2);
+function bestGrips(mouse: Mouse, hand: number) {
+  const keys = recommendedGripKeys(mouse, hand);
+  return keys.map((key) => grips.find((item) => item.key === key)!).filter(Boolean);
 }
 
 function MouseImage({ mouse, eager = false }: { mouse: Mouse; eager?: boolean }) {
@@ -273,9 +256,9 @@ export default function Home() {
         <div className="hero-copy">
           <div className="database-pill"><i /> ELOSHAPES DATA · 2026</div>
           <h1>不是最贵的。<br /><em>是最合手的。</em></h1>
-          <p>完整收录 <b>{mice.length || "1,598"}</b> 款电竞鼠标、<b>{brandCounts.size || "192"}</b> 个品牌。先确定手型和握法，再看传感器、重量和价格。</p>
+          <p>完整收录 <b>{mice.length || "1,599"}</b> 款电竞鼠标、<b>{brandCounts.size || "192"}</b> 个品牌。先确定手型和握法，再看传感器、重量和价格。</p>
           <div className="hero-actions"><a href="#finder">开始测握感 <span>→</span></a><a href="#shape-compare" className="quiet">进入模具对比</a></div>
-          <div className="hero-proof"><span><b>1,598</b>鼠标型号</span><span><b>40+</b>详细字段</span><span><b>6</b>种握法</span></div>
+          <div className="hero-proof"><span><b>1,599</b>鼠标型号</span><span><b>40+</b>详细字段</span><span><b>6</b>种握法</span></div>
         </div>
         <div className="hero-product">
           <div className="hero-grid" />
@@ -316,10 +299,11 @@ export default function Home() {
 
           <div className="product-area">
             {loading ? <div className="loading-grid">{Array.from({ length: 12 }).map((_, i) => <div key={i} />)}</div> : visible.length ? <div className="product-grid">{visible.map((mouse) => {
-              const recommendations = bestGrips(mouse);
+              const recommendations = bestGrips(mouse, hand);
+              const handRange = suitableHandRange(mouse, grip);
               return <article className="product-card" key={mouse.id}>
                 <div className="product-media"><div className="badges"><span>{label(mouse.size)}</span>{mouse.releaseDate && Number(mouse.releaseDate.slice(0,4)) >= 2025 && <b>NEW</b>}</div><button className={`compare-add ${compare.includes(mouse.id) ? "active" : ""}`} disabled={compare.length >= 4 && !compare.includes(mouse.id)} onClick={() => toggleCompare(mouse.id)} aria-label={`对比 ${mouse.brand} ${mouse.name}`}>{compare.includes(mouse.id) ? "✓" : "+"}</button><MouseImage mouse={mouse} /></div>
-                <div className="product-info"><div className="product-brand">{mouse.brand}</div><h3>{mouse.name}</h3><div className="fit-line"><span style={{ width: `${fitScore(mouse, hand, grip)}%` }} /><b>{fitScore(mouse, hand, grip)}% 适配</b></div><div className="grip-tags">{recommendations.map((item) => <span key={item.key}>{item.label}</span>)}</div><div className="product-specs"><span><small>重量</small><b>{num(mouse.weight, "g")}</b></span><span><small>尺寸</small><b>{mouse.length ? `${mouse.length}mm` : "—"}</b></span><span><small>传感器</small><b title={mouse.sensor || ""}>{mouse.sensor || "—"}</b></span><span><small>回报率</small><b>{num(mouse.polling, "Hz")}</b></span></div><div className="product-bottom"><div>{mouse.price ? <><strong>¥{mouse.price}</strong><small>参考价</small></> : <span>价格待补充</span>}</div><button onClick={() => setDetail(mouse)}>完整参数 <i>→</i></button></div></div>
+                <div className="product-info"><div className="product-brand">{mouse.brand}</div><h3>{mouse.name}</h3><div className="fit-line"><span style={{ width: `${fitScore(mouse, hand, grip)}%` }} /><b>{fitScore(mouse, hand, grip)}% 适配</b></div><div className="grip-tags"><span>手长 {handRange.min}–{handRange.max}cm</span>{recommendations.map((item) => <span key={item.key}>{item.label}</span>)}</div><div className="product-specs"><span><small>重量</small><b>{num(mouse.weight, "g")}</b></span><span><small>尺寸</small><b>{mouse.length ? `${mouse.length}mm` : "—"}</b></span><span><small>传感器</small><b title={mouse.sensor || ""}>{mouse.sensor || "—"}</b></span><span><small>回报率</small><b>{num(mouse.polling, "Hz")}</b></span></div><div className="product-bottom"><div>{mouse.price ? <><strong>¥{mouse.price}</strong><small>参考价</small></> : <span>价格待核验</span>}</div><button onClick={() => setDetail(mouse)}>完整参数 <i>→</i></button></div></div>
               </article>;
             })}</div> : <div className="empty"><b>没有符合条件的鼠标</b><p>试试放宽重量、品牌或价格条件。</p><button onClick={resetFilters}>清空筛选</button></div>}
             {remaining > 0 && <div className="pagination"><span>已显示 <b>{visible.length.toLocaleString()}</b> / {results.length.toLocaleString()} 款</span><button onClick={() => setPage((current) => current + 1)}>继续显示 {Math.min(PAGE_SIZE, remaining)} 款</button><button className="show-all" onClick={() => setPage(totalPages)}>一次显示全部符合条件的鼠标</button></div>}
@@ -327,7 +311,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="data-note"><div><span className="section-kicker">ABOUT THE DATA</span><h2>参数透明，推荐有依据。</h2></div><div className="data-points"><span><b>01</b><strong>完整目录</strong><p>收录 EloShapes 公开目录当前的 1,598 款鼠标，包含 192 个品牌。</p></span><span><b>02</b><strong>详细硬件</strong><p>尺寸、模具、传感器、MCU、微动、编码器与按键数据集中展示。</p></span><span><b>03</b><strong>握法推算</strong><p>适配分是基于尺寸与模具特征的算法建议，不代替实际试握。</p></span></div></section>
+      <section className="data-note"><div><span className="section-kicker">ABOUT THE DATA</span><h2>参数透明，推荐有依据。</h2></div><div className="data-points"><span><b>01</b><strong>完整目录</strong><p>收录 EloShapes 公开目录当前的 1,599 款鼠标，包含 192 个品牌。</p></span><span><b>02</b><strong>详细硬件</strong><p>尺寸、模具、传感器、MCU、微动、编码器与按键数据集中展示。</p></span><span><b>03</b><strong>握法推算</strong><p>适配分是基于尺寸与模具特征的算法建议，不代替实际试握。</p></span></div></section>
 
       <footer><div className="footer-main"><div className="logo inverted"><span className="logo-symbol">G</span><span><b>GRIPLAB</b><small>电竞鼠标选择器</small></span></div><p>从手型出发，找到真正适合你的电竞鼠标。</p><a href="https://www.eloshapes.com/mouse/browse?view=table" target="_blank" rel="noreferrer">数据与产品图片来源：EloShapes ↗</a></div><div className="creator"><span>CREATOR</span><b>作者：我的手机没电了 p1341026</b></div><div className="legal">数据更新时间：2026-07 · 价格仅供参考，购买前请以实际销售页面为准。</div></footer>
 
