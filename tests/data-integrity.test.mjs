@@ -7,7 +7,7 @@ const mice = JSON.parse(await readFile(new URL("public/mice-database.json", root
 const shapeData = JSON.parse(await readFile(new URL("public/mouse-shapes.json", root), "utf8"));
 
 test("keeps the complete mouse catalog internally consistent", () => {
-  assert.equal(mice.length, 1598);
+  assert.equal(mice.length, 1599);
   assert.equal(new Set(mice.map((mouse) => mouse.handle)).size, mice.length);
   assert.equal(new Set(mice.map((mouse) => mouse.brand)).size, 192);
 
@@ -23,7 +23,7 @@ test("keeps the complete mouse catalog internally consistent", () => {
 test("keeps every mouse connected to the local shape catalog", () => {
   assert.equal(Object.keys(shapeData.shapes).length, mice.length);
   assert.equal(shapeData.total, mice.length);
-  assert.equal(shapeData.available, 1590);
+  assert.equal(shapeData.available, 1591);
   for (const mouse of mice) assert.ok(Object.hasOwn(shapeData.shapes, mouse.handle));
 });
 
@@ -32,10 +32,12 @@ test("includes the current flagship comparison defaults", () => {
   assert.ok(handles.has("razer-viper-v4-pro"));
   assert.ok(handles.has("logitech-g-pro-x2-superstrike"));
   assert.ok(handles.has("finalmouse-starlight-x"));
+  assert.ok(handles.has("pmm-titan-mini"));
 
   const viperV4 = mice.find((mouse) => mouse.handle === "razer-viper-v4-pro");
   const viperV3 = mice.find((mouse) => mouse.handle === "razer-viper-v3-pro");
   const gpw5 = mice.find((mouse) => mouse.handle === "logitech-g-pro-x2-superstrike");
+  const titanMini = mice.find((mouse) => mouse.handle === "pmm-titan-mini");
   assert.equal(viperV4.releaseDate, "2026-03-24");
   assert.equal(viperV4.polling, 8000);
   assert.equal(viperV4.price, 1299);
@@ -50,6 +52,10 @@ test("includes the current flagship comparison defaults", () => {
   assert.match(gpw5.name, /GPW5 雪豹/);
   assert.equal(gpw5.releaseDate, "2026-02-10");
   assert.equal(gpw5.price, 1899);
+  assert.deepEqual([titanMini.length, titanMini.width, titanMini.height, titanMini.weight], [118.4, 61.2, 38.6, 31]);
+  assert.equal(titanMini.globalMsrp, 139.9);
+  assert.equal(titanMini.globalCurrency, "EUR");
+  assert.equal(titanMini.priceStatus, "china-price-unverified");
 });
 
 test("places every known reference price in a visible tier", () => {
