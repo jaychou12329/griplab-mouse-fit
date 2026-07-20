@@ -15,6 +15,8 @@
     "start:china": "next start -H 0.0.0.0 -p 3000",
     "sync:shapes": "node scripts/sync-mouse-shapes.mjs",
     "check:new-mice": "node scripts/check-new-mice.mjs",
+    "prices:research": "node scripts/research-mouse-prices.mjs",
+    "prices:estimate": "node scripts/estimate-missing-prices.mjs",
     "test": "npm run build && node --test tests/rendered-html.test.mjs tests/data-integrity.test.mjs tests/mouse-fit.test.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "drizzle-kit generate"

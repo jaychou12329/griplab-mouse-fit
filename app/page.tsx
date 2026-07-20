@@ -49,6 +49,9 @@ type Mouse = {
   encoders: Part[];
   has3d: boolean | null;
   price: number | null;
+  priceOriginal?: number | null;
+  priceCurrency?: string | null;
+  priceType?: "listed" | "estimated" | null;
   globalMsrp?: number | null;
   globalCurrency?: string | null;
   priceStatus?: string | null;
@@ -98,6 +101,23 @@ const zh: Record<string, string> = {
 
 const label = (value: string | null | undefined) => value ? (zh[value] || value.replaceAll(" - ", " · ")) : "—";
 const num = (value: number | null | undefined, unit = "") => value == null ? "—" : `${value.toLocaleString()}${unit}`;
+
+function priceLabel(mouse: Mouse) {
+  if (mouse.priceType === "listed") return "官网 / 历史价";
+  if (mouse.priceType === "estimated") return "规格估算价";
+  return "参考价";
+}
+
+function priceNote(mouse: Mouse) {
+  if (mouse.priceType === "listed") {
+    const original = mouse.priceOriginal != null && mouse.priceCurrency
+      ? `（原价 ${mouse.priceCurrency} ${mouse.priceOriginal.toLocaleString()}）`
+      : "";
+    return `${mouse.priceSource || "官网或零售商历史定价"}${original}`;
+  }
+  if (mouse.priceType === "estimated") return mouse.priceSource || "根据同品牌、同规格型号估算";
+  return mouse.priceSource || "已收录参考价";
+}
 
 function imageUrl(mouse: Mouse, size = 560) {
   if (mouse.localImage) return assetUrl(`/${mouse.localImage.replace(/^\/+/, "")}`);
@@ -283,7 +303,7 @@ export default function Home() {
       <section className="catalog" id="catalog">
         <div className="catalog-head"><div><span className="section-kicker">FULL DATABASE</span><h2>全部鼠标库</h2><p>全库 {mice.length.toLocaleString()} 款 · 符合条件 {results.length.toLocaleString()} 款 · 已显示 {visible.length.toLocaleString()} 款</p></div><div className="catalog-actions"><button className="mobile-filter-button" onClick={() => setMobileFilters(true)}>筛选器</button><select aria-label="排序" value={sort} onChange={(e) => setSort(e.target.value as SortKey)}><option value="fit">适配度优先</option><option value="newest">新品优先</option><option value="weight">重量从轻到重</option><option value="polling">回报率从高到低</option><option value="name">品牌名称</option></select><button className="reset" onClick={resetFilters}>重置筛选</button></div></div>
         <div className="price-tier-panel">
-          <div className="price-tier-heading"><span>PRICE RANGE</span><div><h3>按价位选鼠标</h3><p>选中价位后，只显示已有参考价的型号；也可以在左侧输入任意预算。</p></div></div>
+          <div className="price-tier-heading"><span>PRICE RANGE</span><div><h3>按价位选鼠标</h3><p>全部型号均已补充参考价格，可直接选择价位或在左侧输入任意预算。</p></div></div>
           <div className="price-tier-list">{budgetTiers.map((tier) => <button key={tier.key} className={activeBudgetKey === tier.key ? "active" : ""} aria-pressed={activeBudgetKey === tier.key} onClick={() => selectBudgetTier(tier)}><span>{tier.label}</span><b>{tier.range}</b><small>{loading ? "…" : `${priceTierCounts[tier.key] || 0} 款`}</small></button>)}</div>
         </div>
         <div className="catalog-layout">
@@ -293,7 +313,7 @@ export default function Home() {
             <div className="filter-group"><h3>模具形状</h3><div className="choice-list">{[["all","全部形状"],["symmetrical","对称"],["ergonomic","人体工学"],["hybrid","混合型"]].map(([key,name]) => <button key={key} className={shape === key ? "active" : ""} onClick={() => setShape(key)}><span>{name}</span>{shape === key && <b>✓</b>}</button>)}</div></div>
             <div className="filter-group"><h3>连接方式</h3><div className="choice-list">{[["all","不限"],["wireless","无线"],["wired","有线"]].map(([key,name]) => <button key={key} className={wireless === key ? "active" : ""} onClick={() => setWireless(key)}><span>{name}</span>{wireless === key && <b>✓</b>}</button>)}</div></div>
             <div className="filter-group"><h3>最高重量 <b>{weightMax === 180 ? "不限" : `${weightMax}g`}</b></h3><input aria-label="最高重量" type="range" min="35" max="180" step="5" value={weightMax} onChange={(e) => setWeightMax(Number(e.target.value))} /><div className="range-labels"><span>35g</span><span>不限</span></div></div>
-            <div className="filter-group"><h3>参考预算</h3><div className="budget-box"><label>¥<input aria-label="最低预算" type="number" value={budget[0]} min="0" max={budget[1]} onChange={(e) => setBudget([Number(e.target.value), budget[1]])} /></label><span>—</span><label>¥<input aria-label="最高预算" type="number" value={budget[1]} min={budget[0]} max="5000" onChange={(e) => setBudget([budget[0], Number(e.target.value)])} /></label></div><label className="unknown-toggle"><input type="checkbox" checked={includeUnknownPrice} onChange={(e) => setIncludeUnknownPrice(e.target.checked)} /><span>同时显示价格待补充的型号</span></label><p className="filter-help">完整参数库不包含实时售价；参考价只覆盖部分热门型号。</p></div>
+            <div className="filter-group"><h3>参考预算</h3><div className="budget-box"><label>¥<input aria-label="最低预算" type="number" value={budget[0]} min="0" max={budget[1]} onChange={(e) => setBudget([Number(e.target.value), budget[1]])} /></label><span>—</span><label>¥<input aria-label="最高预算" type="number" value={budget[1]} min={budget[0]} max="5000" onChange={(e) => setBudget([budget[0], Number(e.target.value)])} /></label></div><label className="unknown-toggle"><input type="checkbox" checked={includeUnknownPrice} onChange={(e) => setIncludeUnknownPrice(e.target.checked)} /><span>保留未来待补价的新型号</span></label><p className="filter-help">优先采用官网、零售商或历史定价；无法查到的型号使用同品牌同规格估算，并在卡片中明确标注。</p></div>
             <button className="apply-mobile" onClick={() => setMobileFilters(false)}>查看 {results.length} 款结果</button>
           </aside>
 
@@ -303,7 +323,7 @@ export default function Home() {
               const handRange = suitableHandRange(mouse, grip);
               return <article className="product-card" key={mouse.id}>
                 <div className="product-media"><div className="badges"><span>{label(mouse.size)}</span>{mouse.releaseDate && Number(mouse.releaseDate.slice(0,4)) >= 2025 && <b>NEW</b>}</div><button className={`compare-add ${compare.includes(mouse.id) ? "active" : ""}`} disabled={compare.length >= 4 && !compare.includes(mouse.id)} onClick={() => toggleCompare(mouse.id)} aria-label={`对比 ${mouse.brand} ${mouse.name}`}>{compare.includes(mouse.id) ? "✓" : "+"}</button><MouseImage mouse={mouse} /></div>
-                <div className="product-info"><div className="product-brand">{mouse.brand}</div><h3>{mouse.name}</h3><div className="fit-line"><span style={{ width: `${fitScore(mouse, hand, grip)}%` }} /><b>{fitScore(mouse, hand, grip)}% 适配</b></div><div className="grip-tags"><span>手长 {handRange.min}–{handRange.max}cm</span>{recommendations.map((item) => <span key={item.key}>{item.label}</span>)}</div><div className="product-specs"><span><small>重量</small><b>{num(mouse.weight, "g")}</b></span><span><small>尺寸</small><b>{mouse.length ? `${mouse.length}mm` : "—"}</b></span><span><small>传感器</small><b title={mouse.sensor || ""}>{mouse.sensor || "—"}</b></span><span><small>回报率</small><b>{num(mouse.polling, "Hz")}</b></span></div><div className="product-bottom"><div>{mouse.price ? <><strong>¥{mouse.price}</strong><small>参考价</small></> : <span>价格待核验</span>}</div><button onClick={() => setDetail(mouse)}>完整参数 <i>→</i></button></div></div>
+                <div className="product-info"><div className="product-brand">{mouse.brand}</div><h3>{mouse.name}</h3><div className="fit-line"><span style={{ width: `${fitScore(mouse, hand, grip)}%` }} /><b>{fitScore(mouse, hand, grip)}% 适配</b></div><div className="grip-tags"><span>手长 {handRange.min}–{handRange.max}cm</span>{recommendations.map((item) => <span key={item.key}>{item.label}</span>)}</div><div className="product-specs"><span><small>重量</small><b>{num(mouse.weight, "g")}</b></span><span><small>尺寸</small><b>{mouse.length ? `${mouse.length}mm` : "—"}</b></span><span><small>传感器</small><b title={mouse.sensor || ""}>{mouse.sensor || "—"}</b></span><span><small>回报率</small><b>{num(mouse.polling, "Hz")}</b></span></div><div className="product-bottom"><div title={priceNote(mouse)}>{mouse.price != null ? <><strong>¥{mouse.price}</strong><small>{priceLabel(mouse)}</small></> : <span>价格待核验</span>}</div><button onClick={() => setDetail(mouse)}>完整参数 <i>→</i></button></div></div>
               </article>;
             })}</div> : <div className="empty"><b>没有符合条件的鼠标</b><p>试试放宽重量、品牌或价格条件。</p><button onClick={resetFilters}>清空筛选</button></div>}
             {remaining > 0 && <div className="pagination"><span>已显示 <b>{visible.length.toLocaleString()}</b> / {results.length.toLocaleString()} 款</span><button onClick={() => setPage((current) => current + 1)}>继续显示 {Math.min(PAGE_SIZE, remaining)} 款</button><button className="show-all" onClick={() => setPage(totalPages)}>一次显示全部符合条件的鼠标</button></div>}
