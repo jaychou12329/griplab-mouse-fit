@@ -49,6 +49,7 @@ test("includes the current flagship comparison defaults", () => {
   assert.equal(shapeData.shapes[viperV4.handle].side, shapeData.shapes[viperV3.handle].side);
   assert.match(gpw5.name, /GPW5 雪豹/);
   assert.equal(gpw5.releaseDate, "2026-02-10");
+  assert.equal(gpw5.price, 1899);
 });
 
 test("places every known reference price in a visible tier", () => {
